@@ -92,5 +92,19 @@ app.post("/api/gen_ranking", zValidator('json', schema), async (c) => {
 	}
 });
 
+/*
+	ランキングの取得 GET /api/get_ranking
+*/
+app.get("/api/get_ranking", async (c) => {
+	try {
+		const stmt = c.env.DB.prepare("SELECT uid, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent, DENSE_RANK() over(ORDER BY hp DESC, attack DESC, defense DESC, element_mastery DESC, critical_percent DESC, critical_hurt_percent DESC, element_charge_efficiency_percent DESC, element_hurt_percent DESC) AS `rank`, updated_at, created_at FROM userdata LIMIT 100");
+		const allResults = await stmt.all();
+
+		return c.json({ status: "success", message: "Ranking Generated", data: allResults.results });
+	} catch (e: unknown) {
+		console.log(e);
+		return c.json({ status: "error", message: "Internal Server Error" });
+	}
+});
 
 export default app
