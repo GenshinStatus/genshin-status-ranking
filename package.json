@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
+    "dev": "wrangler dev --local",
     "start": "wrangler dev",
     "test": "vitest",
     "cf-typegen": "wrangler types"
@@ -17,6 +17,8 @@
     "wrangler": "^3.0.0"
   },
   "dependencies": {
-    "hono": "^4.3.6"
+    "@hono/zod-validator": "^0.2.1",
+    "hono": "^4.3.6",
+    "workers-qb": "^1.2.2"
   }
 }
