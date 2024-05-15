@@ -107,4 +107,32 @@ app.get("/api/get_ranking", async (c) => {
 	}
 });
 
+/*
+	データレポートの取得 GET /api/get_report
+*/
+app.get("/api/get_report", async (c) => {
+	// 各パラメータの平均値を取得
+	try {
+		const stmt = c.env.DB.prepare("SELECT AVG(hp) AS hp, AVG(attack) AS attack, AVG(defense) AS defense, AVG(element_mastery) AS element_mastery, AVG(critical_percent) AS critical_percent, AVG(critical_hurt_percent) AS critical_hurt_percent, AVG(element_charge_efficiency_percent) AS element_charge_efficiency_percent, AVG(element_hurt_percent) AS element_hurt_percent, COUNT( * ) AS `all_user_count` FROM userdata");
+		const allResults = await stmt.all();
+
+		let rsp_data: any = {
+			"hp": allResults.results[0].hp,
+			"attack": allResults.results[0].attack,
+			"defense": allResults.results[0].defense,
+			"element_mastery": allResults.results[0].element_mastery,
+			"critical_percent": allResults.results[0].critical_percent,
+			"critical_hurt_percent": allResults.results[0].critical_hurt_percent,
+			"element_charge_efficiency_percent": allResults.results[0].element_charge_efficiency_percent,
+			"element_hurt_percent": allResults.results[0].element_hurt_percent,
+			"all_user_count": allResults.results[0].all_user_count
+		}
+
+		return c.json({ status: "success", message: "Report Generated", data: rsp_data });
+	} catch (e: unknown) {
+		console.log(e);
+		return c.json({ status: "error", message: "Internal Server Error" });
+	}
+});
+
 export default app
