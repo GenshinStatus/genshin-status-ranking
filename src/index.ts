@@ -5,7 +5,7 @@ type Env = BaseEnv & {
 	DB: D1Database;
 }
 
-const app = new Hono<Env>();
+const app = new Hono<Estringnv>();
 
 
 /*
@@ -14,6 +14,7 @@ const app = new Hono<Env>();
 */
 app.get("/api/gen_ranking/:uid",  async (c) => {
 	const uid:number = Number(c.req.param("uid"));
+	let nickname: string  = "";
 	let hp: number = 0;
 	let attack: number = 0;
 	let defense: number = 0;
@@ -26,6 +27,7 @@ app.get("/api/gen_ranking/:uid",  async (c) => {
 	// ユーザーのデータを取得
 	const averageData = await getAverageStatus(uid);
 	console.log(averageData);
+	nickname = averageData.nickname;
 	hp = averageData.hp;
 	attack = averageData.attack;
 	defense = averageData.defense;
@@ -46,8 +48,8 @@ app.get("/api/gen_ranking/:uid",  async (c) => {
 		// ユーザーが存在しない
 		try {
 			// ユーザーのデータを挿入
-			const stmt = await c.env.DB.prepare("INSERT INTO userdata (uid, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-			await stmt.bind(uid, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent).run();
+			const stmt = await c.env.DB.prepare("INSERT INTO userdata (uid, nickname, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+			await stmt.bind(uid, nickname, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent).run();
 		} catch (e: unknown) {
 			console.log(e);
 			return c.json({ status: "error", message: "Internal Server Error" });
@@ -60,15 +62,15 @@ app.get("/api/gen_ranking/:uid",  async (c) => {
 
 		if (now - update_at > 3600000) {
 			// 1時間以上経過しているデータは更新
-			const stmt = await c.env.DB.prepare("UPDATE userdata SET hp = ?, attack = ?, defense = ?, element_mastery = ?, critical_percent = ?, critical_hurt_percent = ?, element_charge_efficiency_percent = ?, element_hurt_percent = ?, updated_at = DATETIME('now', 'localtime') WHERE uid = ?");
-			await stmt.bind(hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent, uid).run();
+			const stmt = await c.env.DB.prepare("UPDATE userdata SET nickname = ?, hp = ?, attack = ?, defense = ?, element_mastery = ?, critical_percent = ?, critical_hurt_percent = ?, element_charge_efficiency_percent = ?, element_hurt_percent = ?, updated_at = DATETIME('now', 'localtime') WHERE uid = ?");
+			await stmt.bind(nickname, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent, uid).run();
 		}
 	}
 
 	// ランキングの生成
 	try {
 		// 当該uidの相対ランキングを取得
-		const stmt = c.env.DB.prepare("SELECT uid, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent, DENSE_RANK() over(ORDER BY hp DESC, attack DESC, defense DESC, element_mastery DESC, critical_percent DESC, critical_hurt_percent DESC, element_charge_efficiency_percent DESC, element_hurt_percent DESC) AS `rank`, updated_at, created_at FROM userdata");
+		const stmt = c.env.DB.prepare("SELECT uid, nickname, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent, DENSE_RANK() over(ORDER BY hp DESC, attack DESC, defense DESC, element_mastery DESC, critical_percent DESC, critical_hurt_percent DESC, element_charge_efficiency_percent DESC, element_hurt_percent DESC) AS `rank`, updated_at, created_at FROM userdata");
 		const allResults = await stmt.all();
 
 		const all_user_count = allResults.length;
@@ -93,7 +95,7 @@ app.get("/api/gen_ranking/:uid",  async (c) => {
 */
 app.get("/api/get_ranking", async (c) => {
 	try {
-		const stmt = c.env.DB.prepare("SELECT uid, hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent, DENSE_RANK() over(ORDER BY hp DESC, attack DESC, defense DESC, element_mastery DESC, critical_percent DESC, critical_hurt_percent DESC, element_charge_efficiency_percent DESC, element_hurt_percent DESC) AS `rank`, updated_at, created_at FROM userdata LIMIT 100");
+		const stmt = c.env.DB.prepare("SELECT uid, nickname hp, attack, defense, element_mastery, critical_percent, critical_hurt_percent, element_charge_efficiency_percent, element_hurt_percent, DENSE_RANK() over(ORDER BY hp DESC, attack DESC, defense DESC, element_mastery DESC, critical_percent DESC, critical_hurt_percent DESC, element_charge_efficiency_percent DESC, element_hurt_percent DESC) AS `rank`, updated_at, created_at FROM userdata LIMIT 100");
 		const allResults = await stmt.all();
 
 		return c.json({ status: "success", message: "Ranking Generated", data: allResults.results });
@@ -107,7 +109,7 @@ app.get("/api/get_ranking", async (c) => {
 	データレポートの取得 GET /api/get_report
 */
 app.get("/api/get_report", async (c) => {
-	// 各パラメータの平均値を取得
+	// 各パラメータのユーザー均値を取得
 	try {
 		const stmt = c.env.DB.prepare("SELECT AVG(hp) AS hp, AVG(attack) AS attack, AVG(defense) AS defense, AVG(element_mastery) AS element_mastery, AVG(critical_percent) AS critical_percent, AVG(critical_hurt_percent) AS critical_hurt_percent, AVG(element_charge_efficiency_percent) AS element_charge_efficiency_percent, AVG(element_hurt_percent) AS element_hurt_percent, COUNT( * ) AS `all_user_count` FROM userdata");
 		const allResults = await stmt.all();
