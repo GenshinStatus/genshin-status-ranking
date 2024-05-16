@@ -5,17 +5,7 @@ It works only with Cloudflare Workers and D1 Database and does not depend on any
 
 ## Usage
 ### Generate a Ranking Card
-POST `/api/gen_ranking`
-- @param
-	- uid: number
-	- hp: number
-	- attack: number
-	- defense: number
-	- element_mastery: number
-	- critical_percent: number
-	- critical_hurt_percent: number
-	- element_charge_efficiency_percent: number
-	- element_hurt_percent: number
+GET `/api/gen_ranking/:uid`
 
 ### Get Ranking Lists
 GET `/api/get_ranking`
