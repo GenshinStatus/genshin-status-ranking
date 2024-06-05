@@ -2,6 +2,8 @@ DROP TABLE IF EXISTS userdata;
 CREATE TABLE userdata (
     uid INTEGER PRIMARY KEY AUTOINCREMENT,
 	nickname TEXT NOT NULL,
+	level INTEGER NOT NULL,
+	world_level INTEGER NOT NULL,
     created_at TEXT NOT NULL DEFAULT (DATETIME('now', 'localtime')),
     updated_at TEXT NOT NULL DEFAULT (DATETIME('now', 'localtime'))
 );
