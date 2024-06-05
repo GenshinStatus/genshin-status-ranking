@@ -15,7 +15,7 @@ CREATE TABLE characters (
 	added_hp INTEGER NOT NULL,
 	added_attack INTEGER NOT NULL,
 	added_defense INTEGER NOT NULL,
-	critial_rate INTEGER NOT NULL,
+	critical_rate INTEGER NOT NULL,
 	critial_damage INTEGER NOT NULL,
 	charge_efficiency INTEGER NOT NULL,
 	elemental_mastery INTEGER NOT NULL,
