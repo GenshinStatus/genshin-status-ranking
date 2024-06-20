@@ -156,9 +156,9 @@ const genRanking = async (sortKey: string, uid: number, c: any) => {
 	// ソートキーに応じたクエリを生成
 	let query: string;
 	if(sortKey == "all") {
-		query = "SELECT data.* FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY constellations DESC, level DESC, added_hp DESC, added_attack DESC, added_defense DESC, critical_rate DESC, critical_damage DESC, charge_efficiency DESC, elemental_mastery DESC, elemental_value DESC) AS `ranking`, updated_at, created_at FROM characters) AS data WHERE data.uid = ?";
+		query = "SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY constellations DESC, level DESC, added_hp DESC, added_attack DESC, added_defense DESC, critical_rate DESC, critical_damage DESC, charge_efficiency DESC, elemental_mastery DESC, elemental_value DESC) AS `ranking`, updated_at, created_at FROM characters) AS data WHERE data.uid = ?";
 	} else {
-		query = `SELECT data.* FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY ${sortKey} DESC) AS 'ranking', updated_at, created_at FROM characters) AS data WHERE data.uid = ?`;
+		query = `SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY ${sortKey} DESC) AS 'ranking', updated_at, created_at FROM characters) AS data WHERE data.uid = ?`;
 	}
 
 	try {
