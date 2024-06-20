@@ -21,8 +21,8 @@ CREATE TABLE characters (
 	critical_damage INTEGER NOT NULL,
 	charge_efficiency INTEGER NOT NULL,
 	elemental_mastery INTEGER NOT NULL,
-	elemental_name TEXT NOT NULL,
-	elemental_value INTEGER NOT NULL,
+	elemental_name TEXT NULL,
+	elemental_value INTEGER NULL,
 	created_at TEXT NOT NULL DEFAULT (DATETIME('now', 'localtime')),
 	updated_at TEXT NOT NULL DEFAULT (DATETIME('now', 'localtime')),
 	FOREIGN KEY (uid) REFERENCES userdata(uid)
