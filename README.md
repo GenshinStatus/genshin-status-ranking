@@ -29,7 +29,7 @@ If `all` is specified, the ranking is calculated based on the average of all ele
             "critical_damage": 125.4,
             "charge_efficiency": 195.6,
             "elemental_mastery": 128,
-            "elemental_name": Ice,
+            "elemental_name": "Ice",
             "elemental_value": 0.466,
             "ranking": 1,
             "updated_at": "2024-06-20 17:09:27",
