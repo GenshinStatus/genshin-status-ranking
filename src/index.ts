@@ -112,6 +112,8 @@ app.get("/api/write/:uid", async (c) => {
 				return c.json({ status: "error", message: "Internal Server Error" });
 			}
 		});
+
+		return c.json({ status: "success", message: "User Data Registered", uid: uid});
 	}
 
 });
@@ -124,7 +126,7 @@ app.get("/api/write/:uid", async (c) => {
 */
 app.get("/api/view/:uid",  async (c) => {
 	const uid: number = Number(c.req.param("uid"));
-	const sortKey: string = c.req.query("sort")!;
+	const sortKey: string = c.req.query("sort") ?? "all";
 	const characterId: any = c.req.query("character");
 
 	console.log(uid, sortKey, characterId);
@@ -189,7 +191,7 @@ app.get("/api/view/:uid",  async (c) => {
 	@param character キャラクターID
 */
 app.get("/api/ranking", async (c) => {
-	const sortKey: string = c.req.query("sort")!;
+	const sortKey: string = c.req.query("sort") ?? "all";
 	const characterId: any = c.req.query("character");
 	const offset: number = Number(c.req.query("offset")!);
 	const limit: number = Number(c.req.query("limit")!);
@@ -248,7 +250,7 @@ app.get("/api/delete/:uid", async (c) => {
 		return c.json({ status: "error", message: "Internal Server Error" });
 	}
 
-	return c.json({ status: "success", message: "User Data Deleted" });
+	return c.json({ status: "success", message: "User Data Deleted", uid: uid});
 });
 
 export default app;
