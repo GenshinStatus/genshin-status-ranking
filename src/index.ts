@@ -187,8 +187,6 @@ app.get("/api/view/:uid",  async (c) => {
 	全体ランキングの取得 GET /api/ranking?sort=xxx&character=000&offset=xxx&limit=xxx
 	@param sort ソートキー required
 	@param character キャラクターID
-	@param offset オフセット
-	@param limit リミット
 */
 app.get("/api/ranking", async (c) => {
 	const sortKey: string = c.req.query("sort")!;
