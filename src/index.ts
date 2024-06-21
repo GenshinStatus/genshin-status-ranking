@@ -9,36 +9,14 @@ const app = new Hono<Env>();
 const genshinImageApiUrl = "https://genshin-status-api-dev.cinnamon.works";
 
 /*
-	ランキングの生成 POST /api/gen_ranking
-	@param uid: number, hp: number, attack: number, defense: number, element_mastery: number, critical_percent: number, critical_hurt_percent: number, element_charge_efficiency_percent: number, element_hurt_percent: number
+	ランキングの登録 GET /api/write/:uid
+	@param uid ユーザーID required
 */
-app.get("/api/gen_ranking/:sortKey/:uid",  async (c) => {
-	const sortKey: string = c.req.param("sortKey");
+app.get("/api/write/:uid", async (c) => {
 	const uid: number = Number(c.req.param("uid"));
 	let nickname: string;
 	let level: number;
 	let worldLevel: number;
-
-	// ソートキーがcharactersに存在しない場合
-	if(sortKey != "all" && sortKey != "constellations" && sortKey != "level" && sortKey != "added_hp" && sortKey != "added_attack" && sortKey != "added_defense" && sortKey != "critical_rate" && sortKey != "critical_damage" && sortKey != "charge_efficiency" && sortKey != "elemental_mastery" && sortKey != "elemental_value") {
-		return c.json({ status: "error", message: "Invalid Sort Key" });
-	}
-	/*
-	*==============
-	*　各パラメタの
-	*==============
-	* all : 総合平均算出
-	* constellations : コンステレーション
-	* level : レベル
-	* added_hp : 追加HP
-	* added_attack : 追加攻撃力
-	* added_defense : 追加防御力
-	* critical_rate : クリティカル率
-	* critical_damage : クリティカルダメージ
-	* charge_efficiency : 元素チャージ効率
-	* elemental_mastery : 元素熟知
-	* elemental_value : 元素ダメージ
-	*/
 
 	// ユーザーのデータをimageAPIから取得
 	const user: any = await fetch(`${genshinImageApiUrl}/status/uid/${uid}`);
@@ -78,6 +56,7 @@ app.get("/api/gen_ranking/:sortKey/:uid",  async (c) => {
 			return c.json({ status: "error", message: "Internal Server Error" });
 		}
 	}
+
 	// characterデータが原スタbot側に保持されているか確認
 	if (characters == null || characters.length == 0) {
 		// キャラクターデータが原神statusAPIに存在しない場合
@@ -134,40 +113,189 @@ app.get("/api/gen_ranking/:sortKey/:uid",  async (c) => {
 			}
 		});
 
-		// ランキング生成
-		const ranking = await genRanking(sortKey, uid, c);
-		console.log(ranking);
-
-		if (ranking == null || ranking.length == 0) {
-			return c.json({ status: "error", message: "Ranking Generate Error" });
-		} else {
-			return c.json({ status: "success", message: "Ranking Generated", ranking: ranking });
-		}
+		return c.json({ status: "success", message: "User Data Registered", uid: uid});
 	}
 
+});
 
+/*
+	ランキングの生成 POST /api/view/:uid?sortKey=xxx&characterId=xxx
+	@param uid ユーザーID required
+	@param sort ソートキー required
+	@param character キャラクターID
+*/
+app.get("/api/view/:uid",  async (c) => {
+	const uid: number = Number(c.req.param("uid"));
+	const sortKey: string = c.req.query("sort") ?? "all";
+	const characterId: any = c.req.query("character");
+
+	console.log(uid, sortKey, characterId);
+
+	// ソートキーがcharactersに存在しない場合
+	if(sortKey != "all" && sortKey != "constellations" && sortKey != "level" && sortKey != "added_hp" && sortKey != "added_attack" && sortKey != "added_defense" && sortKey != "critical_rate" && sortKey != "critical_damage" && sortKey != "charge_efficiency" && sortKey != "elemental_mastery" && sortKey != "elemental_value") {
+		return c.json({ status: "error", message: "Invalid Sort Key" });
+	}
+	/*
+	*==============
+	*　各パラメタの
+	*==============
+	* all : 総合平均算出
+	* constellations : コンステレーション
+	* level : レベル
+	* added_hp : 追加HP
+	* added_attack : 追加攻撃力
+	* added_defense : 追加防御力
+	* critical_rate : クリティカル率
+	* critical_damage : クリティカルダメージ
+	* charge_efficiency : 元素チャージ効率
+	* elemental_mastery : 元素熟知
+	* elemental_value : 元素ダメージ
+	*/
+
+	// uidからユーザーが存在するか確認
+	const stmt = await c.env.DB.prepare("SELECT * FROM userdata WHERE uid = ?");
+	const dbuser = await stmt.bind(uid).all();
+	if(dbuser.results == null || dbuser.results.length == 0) {
+		return c.json({ status: "error", message: "User Not Registered." });
+	}
+	// キャラクターデータが存在するか確認
+	const stmt2 = await c.env.DB.prepare("SELECT * FROM characters WHERE uid = ?");
+	const dbcharacters = await stmt2.bind(uid).all();
+	if(dbcharacters.results == null || dbcharacters.results.length == 0) {
+		return c.json({ status: "error", message: "Character Data Not Found." });
+	}
+
+	// ランキング生成
+	let ranking: any;
+
+	// CharacterIdが指定されている場合
+	if (typeof characterId != "undefined") {
+		const charactersData = await genRanking(sortKey, c, uid);
+		ranking = charactersData.filter((item: any) => item.character_id == characterId);
+	} else {
+		ranking = await genRanking(sortKey, c, uid);
+	}
+
+	//console.log(ranking);
+
+	if (ranking == null || ranking.length == 0) {
+		return c.json({ status: "error", message: "Ranking Generate Error" });
+	} else {
+		return c.json({ status: "success", message: "Ranking Generated", ranking: ranking });
+	}
+});
+
+/*
+	全体ランキングの取得 GET /api/ranking?sort=xxx&character=000&offset=xxx&limit=xxx
+	@param sort ソートキー required
+	@param character キャラクターID
+*/
+app.get("/api/ranking", async (c) => {
+	const sortKey: string = c.req.query("sort") ?? "all";
+	const characterId: any = c.req.query("character");
+	const offset: number = Number(c.req.query("offset")!);
+	const limit: number = Number(c.req.query("limit")!);
+
+	// ソートキーがcharactersに存在しない場合
+	if(sortKey != "all" && sortKey != "constellations" && sortKey != "level" && sortKey != "added_hp" && sortKey != "added_attack" && sortKey != "added_defense" && sortKey != "critical_rate" && sortKey != "critical_damage" && sortKey != "charge_efficiency" && sortKey != "elemental_mastery" && sortKey != "elemental_value") {
+		return c.json({ status: "error", message: "Invalid Sort Key" });
+	}
+
+	// ランキング生成
+	let ranking: any;
+	if (typeof characterId != "undefined") {
+		const charactersData = await genRanking(sortKey, c);
+		ranking = charactersData.filter((item: any) => item.character_id == characterId);
+	} else {
+		ranking = await genRanking(sortKey, c);
+	}
+	console.log(ranking);
+
+	if (ranking == null || ranking.length == 0) {
+		return c.json({ status: "error", message: "Ranking Generate Error" });
+	} else {
+		return c.json({ status: "success", message: "Ranking Generated", ranking: ranking });
+	}
+});
+
+/*
+	データの削除 GET /api/delete/:uid
+	@param uid ユーザーID required
+*/
+app.get("/api/delete/:uid", async (c) => {
+	const uid: number = Number(c.req.param("uid"));
+
+	// ユーザーのデータをDBから取得
+	const stmt = await c.env.DB.prepare("SELECT * FROM userdata WHERE uid = ?");
+	const dbuser = await stmt.bind(uid).all();
+	if(dbuser.results == null || dbuser.results.length == 0) {
+		return c.json({ status: "error", message: "User Not Registered." });
+	}
+
+	// ユーザーのデータを削除
+	try {
+		const stmt = await c.env.DB.prepare("DELETE FROM userdata WHERE uid = ?");
+		await stmt.bind(uid).run();
+	} catch (e: unknown) {
+		console.error(e);
+		return c.json({ status: "error", message: "Internal Server Error" });
+	}
+
+	// キャラクターデータを削除
+	try {
+		const stmt = await c.env.DB.prepare("DELETE FROM characters WHERE uid = ?");
+		await stmt.bind(uid).run();
+	} catch (e: unknown) {
+		console.error(e);
+		return c.json({ status: "error", message: "Internal Server Error" });
+	}
+
+	return c.json({ status: "success", message: "User Data Deleted", uid: uid});
 });
 
 export default app;
 
 
 // ランキング生成関数
-const genRanking = async (sortKey: string, uid: number, c: any) => {
-	// ソートキーに応じたクエリを生成
+const genRanking = async (sortKey: string, c: any, uid?: number) => {
+
+	// 応じたクエリを生成
 	let query: string;
-	if(sortKey == "all") {
-		query = "SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY constellations DESC, level DESC, added_hp DESC, added_attack DESC, added_defense DESC, critical_rate DESC, critical_damage DESC, charge_efficiency DESC, elemental_mastery DESC, elemental_value DESC) AS `ranking`, updated_at, created_at FROM characters) AS data WHERE data.uid = ?";
+	if (uid == 0 || typeof uid == "undefined") {
+		// ユーザーIDが指定されていない場合
+		// 全体ランキングから降順で取得 offset-limit
+		if(sortKey == "all") {
+			query = `SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY constellations DESC, level DESC, added_hp DESC, added_attack DESC, added_defense DESC, critical_rate DESC, critical_damage DESC, charge_efficiency DESC, elemental_mastery DESC, elemental_value DESC) AS 'ranking', updated_at, created_at FROM characters) AS data`;
+		} else {
+			query = `SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY ${sortKey} DESC) AS 'ranking', updated_at, created_at FROM characters) AS data`;
+		}
+
+		try {
+			// クエリを実行
+			const stmt = await c.env.DB.prepare(query);
+			const res = await stmt.all();
+			return res.results;
+		} catch (e: unknown) {
+			console.error(e);
+			return c.json({ status: "error", message: "Internal Server Error" });
+		}
 	} else {
-		query = `SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY ${sortKey} DESC) AS 'ranking', updated_at, created_at FROM characters) AS data WHERE data.uid = ?`;
+		// ユーザーIDが指定されている場合
+		if(sortKey == "all") {
+			query = `SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY constellations DESC, level DESC, added_hp DESC, added_attack DESC, added_defense DESC, critical_rate DESC, critical_damage DESC, charge_efficiency DESC, elemental_mastery DESC, elemental_value DESC) AS 'ranking', updated_at, created_at FROM characters) AS data WHERE data.uid = ?`;
+		} else {
+			query = `SELECT data.*, (SELECT COUNT(*) FROM userdata) AS all_users_count, (SELECT COUNT(*) FROM characters) AS all_characters_count FROM (SELECT uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value, DENSE_RANK() over (ORDER BY ${sortKey} DESC) AS 'ranking', updated_at, created_at FROM characters) AS data WHERE data.uid = ?`;
+		}
+
+		try {
+			// クエリを実行
+			const stmt = await c.env.DB.prepare(query);
+			const res = await stmt.bind(uid).all();
+			return res.results;
+		} catch (e: unknown) {
+			console.error(e);
+			return c.json({ status: "error", message: "Internal Server Error" });
+		}
 	}
 
-	try {
-		// クエリを実行
-		const stmt = await c.env.DB.prepare(query);
-		const res = await stmt.bind(uid).all();
-		return res.results;
-	} catch (e: unknown) {
-		console.error(e);
-		return c.json({ status: "error", message: "Internal Server Error" });
-	}
 }
