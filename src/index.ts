@@ -9,11 +9,13 @@ const app = new Hono<Env>();
 const genshinImageApiUrl = "https://genshin-status-api-dev.cinnamon.works";
 
 /*
-	ランキングの登録 GET /api/write/:uid
-	@param uid ユーザーID required
+	ランキングの登録 GET /api/write/:uid/:chr
+	@param uid ユーザーID(number) required
+	@param chr キャラクターID(string) required
 */
-app.get("/api/write/:uid", async (c) => {
+app.get("/api/write/:uid/:chr", async (c) => {
 	const uid: number = Number(c.req.param("uid"));
+	const chr: string = c.req.param("chr");
 	let nickname: string;
 	let level: number;
 	let worldLevel: number;
@@ -75,41 +77,43 @@ app.get("/api/write/:uid", async (c) => {
 
 		// キャラクターのデータをDBに追加
 		characters.forEach(async (character: any) => {
-			let characterId: number;
-			let constellations: number;
-			let level: number;
-			let addedHp: number;
-			let addedAttack: number;
-			let addedDefense: number;
-			let criticalRate: number;
-			let criticalDamage: number;
-			let chargeEfficiency: number;
-			let elementalMastery: number;
-			let elementalName: string;
-			let elementalValue: number;
+			if (character.id === chr) {
+				let characterId: number;
+				let constellations: number;
+				let level: number;
+				let addedHp: number;
+				let addedAttack: number;
+				let addedDefense: number;
+				let criticalRate: number;
+				let criticalDamage: number;
+				let chargeEfficiency: number;
+				let elementalMastery: number;
+				let elementalName: string;
+				let elementalValue: number;
 
-			// 必要データの取得
-			characterId = character.id;
-			constellations = character.constellations;
-			level = character.level;
-			addedHp = character.added_hp;
-			addedAttack = character.added_attack;
-			addedDefense = character.added_defense;
-			criticalRate = character.critical_rate;
-			criticalDamage = character.critical_damage;
-			chargeEfficiency = character.charge_efficiency;
-			elementalMastery = character.elemental_mastery;
-			elementalName = character.elemental_name;
-			if(character.elemental_value != null) elementalValue = Number(character.elemental_value.replace("%", ""))/ 100; else elementalValue = 0;
-			console.log(characterId, constellations, level, addedHp, addedAttack, addedDefense, criticalRate, criticalDamage, chargeEfficiency, elementalMastery, elementalName, elementalValue);
+				// 必要データの取得
+				characterId = character.id;
+				constellations = character.constellations;
+				level = character.level;
+				addedHp = character.added_hp;
+				addedAttack = character.added_attack;
+				addedDefense = character.added_defense;
+				criticalRate = character.critical_rate;
+				criticalDamage = character.critical_damage;
+				chargeEfficiency = character.charge_efficiency;
+				elementalMastery = character.elemental_mastery;
+				elementalName = character.elemental_name;
+				if (character.elemental_value != null) elementalValue = Number(character.elemental_value.replace("%", "")) / 100; else elementalValue = 0;
+				console.log(characterId, constellations, level, addedHp, addedAttack, addedDefense, criticalRate, criticalDamage, chargeEfficiency, elementalMastery, elementalName, elementalValue);
 
-			// DBに追加
-			try {
-				const stmt = await c.env.DB.prepare("INSERT INTO characters (uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-				await stmt.bind(uid, characterId, constellations, level, addedHp, addedAttack, addedDefense, criticalRate, criticalDamage, chargeEfficiency, elementalMastery, elementalName, elementalValue).run();
-			} catch (e: unknown) {
-				console.error(e);
-				return c.json({ status: "error", message: "Internal Server Error" });
+				// DBに追加
+				try {
+					const stmt = await c.env.DB.prepare("INSERT INTO characters (uid, character_id, constellations, level, added_hp, added_attack, added_defense, critical_rate, critical_damage, charge_efficiency, elemental_mastery, elemental_name, elemental_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+					await stmt.bind(uid, characterId, constellations, level, addedHp, addedAttack, addedDefense, criticalRate, criticalDamage, chargeEfficiency, elementalMastery, elementalName, elementalValue).run();
+				} catch (e: unknown) {
+					console.error(e);
+					return c.json({ status: "error", message: "Internal Server Error" });
+				}
 			}
 		});
 
