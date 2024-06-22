@@ -5,15 +5,17 @@ It works only with Cloudflare Workers and D1 Database and does not depend on any
 
 ## Usage
 ### Register a User Ranking Data
-GET `/api/write/:uid
+GET `/api/write/:uid/:characterId
 - `uid`: [required] User ID for registering ranking data.
+- `characterId`: [required] Character ID to register ranking data.(The character ID specified here must be owned by the uid specified.)
 
 #### Response
 ```json
 {
     "status": "success",
     "message": "User Data Registered",
-    "uid": 000000000
+    "uid": 000000000,
+    "characterId": 10000089
 }
 ```
 
