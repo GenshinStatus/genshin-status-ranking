@@ -119,7 +119,7 @@ app.get("/api/write/:uid/:characterId", async (c) => {
 			return c.json({ status: "error", message: "Character Data Not Found" });
 		}
 
-		return c.json({ status: "success", message: "User Data Registered", uid: uid});
+		return c.json({ status: "success", message: "User Data Registered", uid: uid, characterId: characterId });
 	}
 
 });
