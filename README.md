@@ -14,8 +14,8 @@ GET `/api/write/:uid/:characterId
 {
     "status": "success",
     "message": "User Data Registered",
-    "uid": 000000000
-	"characterId": 10000089
+    "uid": 000000000,
+    "characterId": 10000089
 }
 ```
 
